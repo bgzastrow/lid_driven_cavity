@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from lid-driven-cavity.refraction import snell
+from lid_driven_cavity.lid_driven_cavity import snell
 
 
 # For any indexes, a ray normal to the surface should not bend.
