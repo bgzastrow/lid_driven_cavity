@@ -12,17 +12,13 @@ class State:
 
     Parameters
     ----------
-    vector : (N^2,)
+    vector : (Nx*Ny,)
+    Nx : int
+    Ny : int
     """
     vector: np.ndarray
-    N: int = field(init=False)
-
-    def __post_init__(self):
-        """Gets N and checks that dim(vector) is a perfect square."""
-        self.N = int(math.sqrt(self.vector.shape[0]))
-        if self.N**2 != self.vector.shape[0]:
-            raise ValueError(f"vector.shape[0]={self.vector.shape[0]:d}"
-                             " must be a perfect square")
+    Nx: int
+    Ny: int
 
     def ij(self, i, j):
         """
@@ -42,7 +38,7 @@ class State:
             bottom left of grid. Counts from bottom to top and from left to
             right.
         """
-        return self.vector[j*self.N+i]
+        return self.vector[j*self.Nx+i]
 
     def get_matrix(self):
         """
@@ -56,9 +52,48 @@ class State:
             plotting functions.
         """
         # convert to 2D
-        matrix = self.vector.reshape((self.N, self.N))
+        matrix = self.vector.reshape((self.Ny, self.Nx))
 
         # flip vertically (flip rows)
         matrix = np.flip(matrix, axis=0)
 
         return matrix
+
+
+def interpolate(state, dimension):
+    """
+    Spatially interpolates (averages) a state across a 2D grid.
+
+    Parameters
+    ----------
+    state : State
+        Representing u or v on a 2D grid.
+    dimension : str
+        'x' or 'y'
+
+    Returns
+    -------
+    state_hat : State
+        Interpolated state, dimension of grid is reduced by 1 in "dimension".
+    """
+    matrix = state.get_matrix()
+    if dimension == 'x':
+        interpolated_matrix = (matrix[:, :-1] + matrix[:, 1:]) / 2.0
+        return State(
+            get_vector(interpolated_matrix),
+            Nx=state.Nx-1,
+            Ny=state.Ny,
+            )
+    if dimension == 'y':
+        interpolated_matrix = (matrix[:-1, :] + matrix[1:, :]) / 2.0
+        return State(
+            get_vector(interpolated_matrix),
+            Nx=state.Nx,
+            Ny=state.Ny-1,
+            )
+    raise ValueError(f'dimension = {dimension:s} must equal "x" or "y" ')
+
+
+def get_vector(matrix):
+    """Converts a matrix in State format back to a state vector."""
+    return np.flip(matrix, axis=0).reshape(-1,)
