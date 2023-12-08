@@ -8,33 +8,33 @@ from lid_driven_cavity.operators import Operator
 @pytest.fixture(name='mock_vector')
 def create_mock_vector():
     """Mock numpy vector."""
-    actual = np.array([2, 5, -3, 4])
-    return actual
+    mock = np.array([2, 5, -3, 4])
+    return mock
 
 
 @pytest.fixture(name='mock_array')
 def create_mock_array():
     """Mock numpy array."""
-    actual = np.array([
+    mock = np.array([
         [0.0, 0.0, 0.0, 0.0],
         [0.14, 0.0, 0.0, 0.0],
         [0.0, 0.0, 10.0, 0.48],
         [0.0, 0.0, 0.0, 0.0],
         [0.0, -2.4, 0.0, 0.0],
     ])
-    return actual
+    return mock
 
 
 @pytest.fixture(name='mock_operator')
 def create_mock_operator():
     """Mock Operator object"""
-    actual = Operator(
+    mock = Operator(
         shape=(5, 4),
         row=[1, 2, 4, 2],
         col=[0, 3, 1, 2],
         data=[0.14, 0.48, -2.4, 10.0],
         )
-    return actual
+    return mock
 
 
 def test_get_csr_1(mock_operator, mock_array):
