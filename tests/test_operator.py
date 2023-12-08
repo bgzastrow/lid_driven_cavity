@@ -2,7 +2,7 @@
 import pytest
 import numpy as np
 
-from lid_driven_cavity.operator import Operator
+from lid_driven_cavity.operators import Operator
 
 
 @pytest.fixture(name='mock_vector')

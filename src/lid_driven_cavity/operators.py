@@ -1,4 +1,4 @@
-"""Contains logic for solving the lid-driven cavity flow problem."""
+"""Contains Operator class."""
 from dataclasses import dataclass, field
 from typing import List
 import numpy as np
