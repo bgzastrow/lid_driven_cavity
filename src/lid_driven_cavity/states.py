@@ -40,7 +40,8 @@ class State:
         """
         return self.vector[j*self.Nx+i]
 
-    def get_matrix(self):
+    @property
+    def matrix(self):
         """
         Returns 2D array version of state vector.
 
@@ -51,16 +52,17 @@ class State:
             of grid. Note that this may need to be manipulated for certain
             plotting functions.
         """
-        # convert to 2D
-        matrix = self.vector.reshape((self.Ny, self.Nx))
+        # # convert to 2D
+        # matrix = self.vector.reshape((self.Ny, self.Nx))
 
-        # flip vertically (flip rows)
-        matrix = np.flip(matrix, axis=0)
+        # # flip vertically (flip rows)
+        # matrix = np.flip(matrix, axis=0)
 
-        return matrix
+        # return matrix
+        return get_matrix(self.vector, self.Nx, self.Ny)
 
 
-def interpolate(state, dimension):
+def compute_u_hat(state, direction):
     """
     Spatially interpolates (averages) a state across a 2D grid.
 
@@ -68,32 +70,40 @@ def interpolate(state, dimension):
     ----------
     state : State
         Representing u or v on a 2D grid.
-    dimension : str
+    direction : str
         'x' or 'y'
 
     Returns
     -------
     state_hat : State
-        Interpolated state, dimension of grid is reduced by 1 in "dimension".
+        Interpolated state, direction of grid is reduced by 1 in "direction".
     """
-    matrix = state.get_matrix()
-    if dimension == 'x':
-        interpolated_matrix = (matrix[:, :-1] + matrix[:, 1:]) / 2.0
-        return State(
-            get_vector(interpolated_matrix),
-            Nx=state.Nx-1,
-            Ny=state.Ny,
-            )
-    if dimension == 'y':
-        interpolated_matrix = (matrix[:-1, :] + matrix[1:, :]) / 2.0
-        return State(
-            get_vector(interpolated_matrix),
-            Nx=state.Nx,
-            Ny=state.Ny-1,
-            )
-    raise ValueError(f'dimension = {dimension:s} must equal "x" or "y" ')
+    if direction == 'x':
+        interpolated_matrix = (state.matrix[:, :-1] + state.matrix[:, 1:]) / 2.0
+        return interpolated_matrix
+        # return State(
+        #     get_vector(interpolated_matrix),
+        #     Nx=state.Nx-1,
+        #     Ny=state.Ny,
+        #     )
+    if direction == 'y':
+        interpolated_matrix = (state.matrix[:-1, :] + state.matrix[1:, :]) / 2.0
+        return interpolated_matrix
+        # return State(
+        #     get_vector(interpolated_matrix),
+        #     Nx=state.Nx,
+        #     Ny=state.Ny-1,
+        #     )
+    raise ValueError(f'direction = {direction:s} must equal "x" or "y" ')
 
 
 def get_vector(matrix):
     """Converts a matrix in State format back to a state vector."""
     return np.flip(matrix, axis=0).reshape(-1,)
+
+
+def get_matrix(vector, Nx, Ny):
+    """Converts a vector in State format back to state matrix."""
+    matrix = vector.reshape((Ny, Nx))  # convert to 2D
+    matrix = np.flip(matrix, axis=0)  # flip vertically (flip rows)
+    return matrix

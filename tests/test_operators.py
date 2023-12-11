@@ -62,3 +62,10 @@ def test_multiply_2(mock_operator, mock_vector):
     mock_array = mock_operator.get_csr().toarray()
     actual = mock_array @ mock_vector
     assert actual == pytest.approx(mock_operator.multiply(mock_vector))
+
+# # make dummy b matrix for debugging
+# vector = np.arange(1,b.shape[0]*b.shape[1]+1)
+# vector2 = vector.reshape(b.shape)
+# b = np.flip(vector2, axis=0)
+# print('b')
+# print(b)

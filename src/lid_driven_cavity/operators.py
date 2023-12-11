@@ -88,3 +88,238 @@ class Operator:
         """
         matrix_csr = self.get_csr()
         return matrix_csr.dot(x)
+
+
+def assemble_laplacian_operator_u(b, Nx, Ny, h, k):
+    """
+    Computes the discrete laplacian (viscous operator).
+
+    Parameters
+    ----------
+    q : (N^2,)
+        State vector
+    h : float
+        spatial grid spacing (1/N)
+
+    Returns
+    -------
+    laplacian : State
+    """
+    n = Nx*Ny
+    operator = Operator((n, n))
+    hm2 = h**(-2)
+
+    # loop on internal grid points for now
+    for i in range(1, Nx-1):
+        for j in range(1, Ny-1):
+
+            # pointers
+            row = lij(i, j, Nx)    # this is the row
+            ip1 = lij(i+1, j, Nx)  # (i+1,j)
+            im1 = lij(i-1, j, Nx)  # (i-1,j)
+            jp1 = lij(i, j+1, Nx)  # (i,j+1)
+            jm1 = lij(i, j-1, Nx)  # (i,j-1)
+
+            # add coefficients
+            operator.append(row, row, -4*hm2)  # diagonal
+            operator.append(row, ip1, hm2)
+            operator.append(row, im1, hm2)
+            operator.append(row, jp1, hm2)
+            operator.append(row, jm1, hm2)
+
+    # top and bottom surfaces
+    jtop = Ny-1
+    jbottom = 0
+    for i in range(1, Nx-1):
+
+        # top surface (y=1)
+        row = lij(i, jtop, Nx)  # this is the row
+        jm1 = lij(i, jtop-1, Nx)  # (i,j-1)
+        operator.append(row, row, 1)
+        operator.append(row, jm1, 1)
+        b[row] = 2*h  # TODO add gradient terms
+
+        # bottom surface (y=0)
+        row = lij(i, jbottom, Nx)  # this is the row
+        jp1 = lij(i, jbottom+1, Nx)  # (i,j-1)
+        operator.append(row, row, 1)
+        operator.append(row, jp1, 1)
+        b[row] = 0  # TODO add gradient terms
+
+    # left and right surfaces
+    iright = Nx-1
+    ileft = 0
+    for j in range(1, Ny-1):
+
+        # right surface (x=1)
+        row = lij(iright, j, Nx)  # this is the row
+        operator.append(row, row, 1)
+        b[row] = 0  # TODO add gradient terms
+
+        # left surface (x=0)
+        row = lij(ileft, j, Nx)  # this is the row
+        operator.append(row, row, 1)
+        b[row] = 0  # TODO add gradient terms
+
+    return operator, b
+
+
+def assemble_laplacian_operator_v(b, Nx, Ny, h, k):
+    """
+    Computes the discrete laplacian (viscous operator).
+
+    Parameters
+    ----------
+    q : (N^2,)
+        State vector
+    h : float
+        spatial grid spacing (1/N)
+
+    Returns
+    -------
+    laplacian : State
+    """
+    n = Nx*Ny
+    operator = Operator((n, n))
+    hm2 = h**(-2)
+
+    # loop on internal grid points for now
+    for i in range(1, Nx-1):
+        for j in range(1, Ny-1):
+
+            # pointers
+            row = lij(i, j, Nx)    # this is the row
+            ip1 = lij(i+1, j, Nx)  # (i+1,j)
+            im1 = lij(i-1, j, Nx)  # (i-1,j)
+            jp1 = lij(i, j+1, Nx)  # (i,j+1)
+            jm1 = lij(i, j-1, Nx)  # (i,j-1)
+
+            # add coefficients
+            operator.append(row, row, -4*hm2)  # diagonal
+            operator.append(row, ip1, hm2)
+            operator.append(row, im1, hm2)
+            operator.append(row, jp1, hm2)
+            operator.append(row, jm1, hm2)
+
+    # top and bottom surfaces
+    jtop = Ny-1
+    jbottom = 0
+    for i in range(1, Nx-1):
+
+        # top surface (y=1)
+        row = lij(i, jtop, Nx)  # this is the row
+        # jm1 = lij(i, jtop-1, Nx)  # (i,j-1)
+        operator.append(row, row, 1)
+        # operator.append(row, jm1, 1)
+        b[row] = 0  # TODO add gradient terms
+
+        # bottom surface (y=0)
+        row = lij(i, jbottom, Nx)  # this is the row
+        # jp1 = lij(i, jbottom+1, Nx)  # (i,j-1)
+        operator.append(row, row, 1)
+        # operator.append(row, jp1, 1)
+        b[row] = 0  # TODO add gradient terms
+
+    # left and right surfaces
+    iright = Nx-1
+    ileft = 0
+    for j in range(1, Ny-1):
+
+        # right surface (x=1)
+        row = lij(iright, j, Nx)  # this is the row
+        im1 = lij(iright-1, j, Nx)
+        operator.append(row, row, 1)
+        operator.append(row, im1, 1)
+        b[row] = 0  # TODO add gradient terms
+
+        # left surface (x=0)
+        row = lij(ileft, j, Nx)  # this is the row
+        ip1 = lij(ileft+1, j, Nx)
+        operator.append(row, row, 1)
+        operator.append(row, ip1, 1)
+        b[row] = 0  # TODO add gradient terms
+
+    return operator, b
+
+
+def assemble_laplacian_operator_phi(b, u_star, v_star, Nx, Ny, h, k):
+    """
+    Computes the discrete laplacian (viscous operator).
+
+    Parameters
+    ----------
+    q : (N^2,)
+        State vector
+    h : float
+        spatial grid spacing (1/N)
+
+    Returns
+    -------
+    laplacian : State
+    """
+    n = Nx*Ny
+    operator = Operator((n, n))
+    hm2 = h**(-2)
+
+    # loop on internal grid points for now
+    for i in range(1, Nx-1):
+        for j in range(1, Ny-1):
+
+            # pointers
+            row = lij(i, j, Nx)    # this is the row
+            ip1 = lij(i+1, j, Nx)  # (i+1,j)
+            im1 = lij(i-1, j, Nx)  # (i-1,j)
+            jp1 = lij(i, j+1, Nx)  # (i,j+1)
+            jm1 = lij(i, j-1, Nx)  # (i,j-1)
+
+            # add coefficients
+            operator.append(row, row, -4*hm2)  # diagonal
+            operator.append(row, ip1, hm2)
+            operator.append(row, im1, hm2)
+            operator.append(row, jp1, hm2)
+            operator.append(row, jm1, hm2)
+
+    # top and bottom surfaces
+    jtop = Ny-1
+    jbottom = 0
+    for i in range(1, Nx-1):
+
+        # top surface (y=1)
+        row = lij(i, jtop, Nx)  # this is the row
+        jm1 = lij(i, jtop-1, Nx)  # (i,j-1)
+        operator.append(row, row, 1)
+        operator.append(row, jm1, -1)
+        b[row] = (-h/k)*v_star[i, jtop]  # TODO add gradient terms
+
+        # bottom surface (y=0)
+        row = lij(i, jbottom, Nx)  # this is the row
+        jp1 = lij(i, jbottom+1, Nx)  # (i,j-1)
+        operator.append(row, row, 1)
+        operator.append(row, jp1, -1)
+        b[row] = (-h/k)*v_star[i, jbottom]  # TODO add gradient terms
+
+    # left and right surfaces
+    iright = Nx-1
+    ileft = 0
+    for j in range(1, Ny-1):
+
+        # right surface (x=1)
+        row = lij(iright, j, Nx)  # this is the row
+        im1 = lij(iright-1, j, Nx)
+        operator.append(row, row, 1)
+        operator.append(row, im1, -1)
+        b[row] = (-h/k)*u_star[iright, j]  # TODO add gradient terms
+
+        # left surface (x=0)
+        row = lij(ileft, j, Nx)  # this is the row
+        ip1 = lij(ileft+1, j, Nx)
+        operator.append(row, row, 1)
+        operator.append(row, ip1, -1)
+        b[row] = (-h/k)*u_star[ileft, j]  # TODO add gradient terms
+
+    return operator, b
+
+
+def lij(i, j, Nx):
+    """Row major ordering indexing function."""
+    return j * Nx + i

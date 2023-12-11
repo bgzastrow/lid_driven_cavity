@@ -27,14 +27,14 @@ def test_get_matrix():
         [5,   6,  7,  8,  9],
         [0,   1,  2,  3,  4],
     ])
-    assert mock_matrix == pytest.approx(state.get_matrix())
+    assert mock_matrix == pytest.approx(state.matrix)
 
 
 def test_matrix_equals_ij(i, j):
     """Tests that ij indexing function matches matrix output."""
     Nx, Ny = 5, 4
     state = State(np.arange(0, Nx*Ny), Nx=Nx, Ny=Ny)
-    matrix = state.get_matrix()
+    matrix = state.matrix
     assert state.ij(i, j) == pytest.approx(matrix[state.Ny-j-1, i])
 
 
@@ -50,7 +50,7 @@ def test_get_vector_x():
     """
     vector = np.arange(5*4)
     state = State(vector, 5, 4)
-    matrix = state.get_matrix()
+    matrix = state.matrix
     new_vector = get_vector(matrix)
     assert vector == pytest.approx(new_vector)
 
@@ -67,7 +67,7 @@ def test_get_vector_y():
     """
     vector = np.arange(4*5)
     state = State(vector, 4, 5)
-    matrix = state.get_matrix()
+    matrix = state.matrix
     new_vector = get_vector(matrix)
     assert vector == pytest.approx(new_vector)
 
@@ -82,8 +82,8 @@ def test_interpolate_x():
         [5.5,  6.5,  7.5,  8.5],
         [0.5,  1.5,  2.5,  3.5],
         ])
-    actual = interpolate(state, dimension='x')
-    assert mock == pytest.approx(actual.get_matrix())
+    actual = interpolate(state, direction='x')
+    assert mock == pytest.approx(actual.matrix)
 
 
 def test_interpolate_y():
@@ -96,5 +96,25 @@ def test_interpolate_y():
         [6.,  7.,  8.,  9.],
         [2.,  3.,  4.,  5.],
         ])
-    actual = interpolate(state, dimension='y')
-    assert mock == pytest.approx(actual.get_matrix())
+    actual = interpolate(state, direction='y')
+    assert mock == pytest.approx(actual.matrix)
+
+# # Testing get_vector <-> get_matrix
+# Nx, Ny = 5, 4
+# matrix = np.flip(np.arange(1, Nx*Ny+1).reshape((Ny, Nx)), axis=0)
+# print(matrix)
+# vector = states.get_vector(matrix)
+# print(vector)
+# matrix2 = states.get_matrix(vector, Nx, Ny)
+# print(matrix2)
+
+# # convert to vector
+# b = states.get_vector(b)
+# print('b to vector')
+# print(b)
+# bmatrix = states.get_matrix(b, 4, 5)
+# print('b vector to matrix')
+# print(bmatrix)
+# b2 = states.get_vector(bmatrix)
+# print('b back to vector')
+# print(b2)
