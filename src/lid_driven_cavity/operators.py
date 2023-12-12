@@ -100,15 +100,13 @@ def compute_gradient_y(state):
 
 def compute_interpolated_x(state):
     """Interpolated (average) state in x direction (to midpoints)."""
-    interpolated_matrix = (state.get_matrix()[:, 1:] //
-                           + state.get_matrix()[:, :-1]) / 2.0
+    interpolated_matrix = (state.get_matrix()[:, 1:] + state.get_matrix()[:, :-1]) / 2.0
     return states.State(interpolated_matrix, Nx=state.Nx-1, Ny=state.Ny)
 
 
 def compute_interpolated_y(state):
     """Interpolated (average) state in y direction (to midpoints)."""
-    interpolated_matrix = (state.get_matrix()[1:, :] //
-                           + state.get_matrix()[:-1, :]) / 2.0
+    interpolated_matrix = (state.get_matrix()[1:, :] + state.get_matrix()[:-1, :]) / 2.0
     return states.State(interpolated_matrix, Nx=state.Nx, Ny=state.Ny-1)
 
 
@@ -142,7 +140,67 @@ def compute_gradient_y_centered(state):
     return states.State(gradient, Nx=state.Nx, Ny=state.Ny)
 
 
-def assemble_laplacian_operator_u(b, Nx, Ny, h, k):
+def compute_Nu(u_n, v_hat_n, h):
+    """Computes convective (nonlinear) term for u."""
+    # Compute gradient of u
+    dudx = compute_gradient_x_centered(u_n)  # on u grid, no boundary columns
+    dudy = compute_gradient_y_centered(u_n)  # on u grid, no boundary rows
+    dudx = dudx.get_matrix()[1:-1, 1:-1]
+    dudy = dudy.get_matrix()[1:-1, 1:-1]
+
+    # Get interior points of u_n
+    u_n_interior = u_n.get_matrix()[1:-1, 1:-1]
+
+    # Interpolate v_hat in x direction
+    v_hat_interpolated = compute_interpolated_x(v_hat_n)  # on u grid, no boundary rows
+    v_hat_interpolated = v_hat_interpolated.get_matrix()[:, 1:-1]
+
+    # [u, v] dot grad(u)
+    Nu_interior = (-u_n_interior*dudx - v_hat_interpolated*dudy) / (2*h)
+    Nu = states.State(Nu_interior, Nx=Nu_interior.shape[1], Ny=Nu_interior.shape[0])
+    Nu.pad_boundaries()
+
+    return Nu
+
+
+def compute_Nv(v_n, u_hat_n, h):
+    """Computes convective (nonlinear) term for u."""
+    # Compute gradient of v
+    dvdx = compute_gradient_x_centered(v_n)  # on u grid, no boundary columns
+    dvdy = compute_gradient_y_centered(v_n)  # on u grid, no boundary rows
+    dvdx = dvdx.get_matrix()[1:-1, 1:-1]
+    dvdy = dvdy.get_matrix()[1:-1, 1:-1]
+
+    # Get interior points of v_n
+    v_n_interior = v_n.get_matrix()[1:-1, 1:-1]
+
+    # Interpolate v_hat in x direction
+    u_hat_interpolated = compute_interpolated_y(u_hat_n)  # on u grid, no boundary rows
+    u_hat_interpolated = u_hat_interpolated.get_matrix()[1:-1, :]
+
+    # [u, v] dot grad(u)
+    Nv_interior = (-v_n_interior*dvdx - u_hat_interpolated*dvdy) / (2*h)
+    Nv = states.State(Nv_interior, Nx=Nv_interior.shape[1], Ny=Nv_interior.shape[0])
+    Nv.pad_boundaries()
+
+    return Nv
+
+
+def compute_laplace(state):
+    """Computes Laplacian of state via 2nd order centered finite difference."""
+    h = 1 / (state.Nx-1)
+    h2 = h**2
+    L = sp.sparse.diags(
+        diagonals=[1.0/h2, 1.0/h2, -4.0/h2, 1.0/h2, 1.0/h2],
+        offsets=[-state.Nx, -1, 0, 1, state.Nx],
+        shape=(state.Nx*state.Ny, state.Nx*state.Ny),
+        format="csr",
+    )
+    laplacian = L.dot(state.vector)
+    return states.State(laplacian, Nx=state.Nx, Ny=state.Ny)
+
+
+def assemble_laplacian_operator_u(b, Nx, Ny, h):
     """
     Computes the discrete laplacian (viscous operator).
 
@@ -189,7 +247,7 @@ def assemble_laplacian_operator_u(b, Nx, Ny, h, k):
         jm1 = states.lij(i, jtop-1, Nx)  # (i,j-1)
         operator.append(row, row, 1)
         operator.append(row, jm1, 1)
-        b[row] = 2*h  # TODO add gradient terms
+        b[row] = 2  # TODO add gradient terms
 
         # bottom surface (y=0)
         row = states.lij(i, jbottom, Nx)  # this is the row
@@ -216,7 +274,7 @@ def assemble_laplacian_operator_u(b, Nx, Ny, h, k):
     return operator, b
 
 
-def assemble_laplacian_operator_v(b, Nx, Ny, h, k):
+def assemble_laplacian_operator_v(b, Nx, Ny, h):
     """
     Computes the discrete laplacian (viscous operator).
 
@@ -260,16 +318,12 @@ def assemble_laplacian_operator_v(b, Nx, Ny, h, k):
 
         # top surface (y=1)
         row = states.lij(i, jtop, Nx)  # this is the row
-        # jm1 = states.lij(i, jtop-1, Nx)  # (i,j-1)
         operator.append(row, row, 1)
-        # operator.append(row, jm1, 1)
         b[row] = 0  # TODO add gradient terms
 
         # bottom surface (y=0)
         row = states.lij(i, jbottom, Nx)  # this is the row
-        # jp1 = states.lij(i, jbottom+1, Nx)  # (i,j-1)
         operator.append(row, row, 1)
-        # operator.append(row, jp1, 1)
         b[row] = 0  # TODO add gradient terms
 
     # left and right surfaces
