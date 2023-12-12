@@ -395,14 +395,16 @@ def assemble_laplacian_operator_phi(b, u_star, v_star, Nx, Ny, h, k):
         jm1 = states.lij(i, jtop-1, Nx)  # (i,j-1)
         operator.append(row, row, 1)
         operator.append(row, jm1, -1)
-        b[row] = (-h/k)*v_star[i, jtop]  # TODO add gradient terms
+        # b[row] = (-h/k)*v_star[i, jtop]  # TODO add gradient terms
+        b[row] = 0.0  # TODO add gradient terms
 
         # bottom surface (y=0)
         row = states.lij(i, jbottom, Nx)  # this is the row
         jp1 = states.lij(i, jbottom+1, Nx)  # (i,j-1)
         operator.append(row, row, 1)
         operator.append(row, jp1, -1)
-        b[row] = (-h/k)*v_star[i, jbottom]  # TODO add gradient terms
+        # b[row] = (-h/k)*v_star[i, jbottom]  # TODO add gradient terms
+        b[row] = 0.0  # TODO add gradient terms
 
     # left and right surfaces
     iright = Nx-1
@@ -414,13 +416,21 @@ def assemble_laplacian_operator_phi(b, u_star, v_star, Nx, Ny, h, k):
         im1 = states.lij(iright-1, j, Nx)
         operator.append(row, row, 1)
         operator.append(row, im1, -1)
-        b[row] = (-h/k)*u_star[iright, j]  # TODO add gradient terms
+        # b[row] = (-h/k)*u_star[iright, j]  # TODO add gradient terms
+        b[row] = 0.0  # TODO add gradient terms
 
         # left surface (x=0)
         row = states.lij(ileft, j, Nx)  # this is the row
         ip1 = states.lij(ileft+1, j, Nx)
         operator.append(row, row, 1)
         operator.append(row, ip1, -1)
-        b[row] = (-h/k)*u_star[ileft, j]  # TODO add gradient terms
+        # b[row] = (-h/k)*u_star[ileft, j]  # TODO add gradient terms
+        b[row] = 0.0  # TODO add gradient terms
+
+    # Set useless ghost points to zero
+    operator.append(0, 0, 1.0)  # bottom left
+    operator.append(Nx-1, Nx-1, 1.0)  # bottom right
+    operator.append(n-Nx-1, n-Nx-1, 1.0)  # top left
+    operator.append(n-1, n-1, 1.0)  # top right
 
     return operator, b
