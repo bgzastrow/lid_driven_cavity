@@ -4,6 +4,8 @@ from typing import List
 import numpy as np
 import scipy as sp
 
+from lid_driven_cavity import states
+
 
 @dataclass
 class Operator:
@@ -25,9 +27,9 @@ class Operator:
         Column index of each nonzero entry in operator matrix.
     """
     shape: tuple
-    data: List[float] = field(default_factory=list)
     row: List[int] = field(default_factory=list)
     col: List[int] = field(default_factory=list)
+    data: List[float] = field(default_factory=list)
 
     def append(self, row, col, data):
         """
@@ -65,29 +67,35 @@ class Operator:
         matrix_csr = sp.sparse.csr_array(matrix_coo)
         return matrix_csr
 
-    def print_dense(self):
-        """
-        Prints operator matrix in dense form for visualization.
-        """
-        matrix_csr = self.get_csr()
-        print(matrix_csr.toarray())
 
-    def multiply(self, x):
-        """
-        Computes the matrix-vector product of the operator with a vector x.
+def compute_gradient_x(state):
+    """
+    Assembles a backward-differencing gradient operator in the x direction.
+    """
+    h = 1 / (state.Nx-1)
+    G = sp.sparse.diags(
+        diagonals=[-1.0/h, 1.0/h],
+        offsets=[-1, 0],
+        shape=(state.Nx*state.Ny, state.Nx*state.Ny),
+        format="csr",
+    )
+    gradient = G.dot(state.vector)
+    return states.State(gradient, Nx=state.Nx, Ny=state.Ny)
 
-        Parameters
-        ----------
-        x : (self.shape[1],)
-            Vector to be multiplied.
 
-        Returns
-        -------
-        Ax : (self.shape[0],)
-            Vector result of matrix-vector product.
-        """
-        matrix_csr = self.get_csr()
-        return matrix_csr.dot(x)
+def compute_gradient_y(state):
+    """
+    Assembles a backward-differencing gradient operator in the y direction.
+    """
+    h = 1 / (state.Ny-1)
+    G = sp.sparse.diags(
+        diagonals=[-1.0/h, 1.0/h],
+        offsets=[-state.Nx, 0],
+        shape=(state.Nx*state.Ny, state.Nx*state.Ny),
+        format="csr",
+    )
+    gradient = G.dot(state.vector)
+    return states.State(gradient, Nx=state.Nx, Ny=state.Ny)
 
 
 def assemble_laplacian_operator_u(b, Nx, Ny, h, k):
@@ -319,7 +327,3 @@ def assemble_laplacian_operator_phi(b, u_star, v_star, Nx, Ny, h, k):
 
     return operator, b
 
-
-def lij(i, j, Nx):
-    """Row major ordering indexing function."""
-    return j * Nx + i
