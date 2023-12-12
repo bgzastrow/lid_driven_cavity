@@ -1,9 +1,15 @@
+"""
+Tools for calculating and plotting performance, results, and error metrics.
+"""
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
 
 
 def relative_frobenius_error(x_numerical, x_analytical):
+    """
+    Computes the relative error in the frobenius norm
+    """
     absolute_error = sp.linalg.norm(x_analytical-x_numerical)
     relative_error = absolute_error / sp.linalg.norm(x_analytical, ord="fro")
     return relative_error
