@@ -145,15 +145,15 @@ def compute_Nu(u_n, v_hat_n, h):
     # Compute gradient of u
     dudx = compute_gradient_x_centered(u_n)  # on u grid, no boundary columns
     dudy = compute_gradient_y_centered(u_n)  # on u grid, no boundary rows
-    dudx = dudx.get_matrix()[1:-1, 1:-1]
-    dudy = dudy.get_matrix()[1:-1, 1:-1]
+    dudx = dudx.get_matrix()[1:-1, 1:-1]  # remove first/last columns
+    dudy = dudy.get_matrix()[1:-1, 1:-1]  # remove first/last rows
 
     # Get interior points of u_n
-    u_n_interior = u_n.get_matrix()[1:-1, 1:-1]
+    u_n_interior = u_n.get_matrix()[1:-1, 1:-1]  # remove first/last rows/columns
 
     # Interpolate v_hat in x direction
     v_hat_interpolated = compute_interpolated_x(v_hat_n)  # on u grid, no boundary rows
-    v_hat_interpolated = v_hat_interpolated.get_matrix()[:, 1:-1]
+    v_hat_interpolated = v_hat_interpolated.get_matrix()[:, 1:-1]  # remove first/last columns
 
     # [u, v] dot grad(u)
     Nu_interior = (-u_n_interior*dudx - v_hat_interpolated*dudy) / (2*h)
@@ -197,7 +197,10 @@ def compute_laplace(state):
         format="csr",
     )
     laplacian = L.dot(state.vector)
-    return states.State(laplacian, Nx=state.Nx, Ny=state.Ny)
+    output = states.State(laplacian, Nx=state.Nx, Ny=state.Ny)
+    output.strip_boundaries()
+    output.pad_boundaries()
+    return output
 
 
 def assemble_laplacian_operator_u(b, Nx, Ny, h):
@@ -314,7 +317,7 @@ def assemble_laplacian_operator_v(b, Nx, Ny, h):
     # top and bottom surfaces
     jtop = Ny-1
     jbottom = 0
-    for i in range(0, Nx):
+    for i in range(1, Nx-1):
 
         # top surface (y=1)
         row = states.lij(i, jtop, Nx)  # this is the row
@@ -329,7 +332,7 @@ def assemble_laplacian_operator_v(b, Nx, Ny, h):
     # left and right surfaces
     iright = Nx-1
     ileft = 0
-    for j in range(1, Ny-1):
+    for j in range(0, Ny):
 
         # right surface (x=1)
         row = states.lij(iright, j, Nx)  # this is the row
@@ -348,7 +351,7 @@ def assemble_laplacian_operator_v(b, Nx, Ny, h):
     return operator, b
 
 
-def assemble_laplacian_operator_phi(b, u_star, v_star, Nx, Ny, h, k):
+def assemble_laplacian_operator_phi(b, Nx, Ny, h, k):
     """
     Computes the discrete laplacian (viscous operator).
 
@@ -395,7 +398,6 @@ def assemble_laplacian_operator_phi(b, u_star, v_star, Nx, Ny, h, k):
         jm1 = states.lij(i, jtop-1, Nx)  # (i,j-1)
         operator.append(row, row, 1)
         operator.append(row, jm1, -1)
-        # b[row] = (-h/k)*v_star[i, jtop]  # TODO add gradient terms
         b[row] = 0.0  # TODO add gradient terms
 
         # bottom surface (y=0)
@@ -403,7 +405,6 @@ def assemble_laplacian_operator_phi(b, u_star, v_star, Nx, Ny, h, k):
         jp1 = states.lij(i, jbottom+1, Nx)  # (i,j-1)
         operator.append(row, row, 1)
         operator.append(row, jp1, -1)
-        # b[row] = (-h/k)*v_star[i, jbottom]  # TODO add gradient terms
         b[row] = 0.0  # TODO add gradient terms
 
     # left and right surfaces
@@ -416,7 +417,6 @@ def assemble_laplacian_operator_phi(b, u_star, v_star, Nx, Ny, h, k):
         im1 = states.lij(iright-1, j, Nx)
         operator.append(row, row, 1)
         operator.append(row, im1, -1)
-        # b[row] = (-h/k)*u_star[iright, j]  # TODO add gradient terms
         b[row] = 0.0  # TODO add gradient terms
 
         # left surface (x=0)
@@ -424,13 +424,12 @@ def assemble_laplacian_operator_phi(b, u_star, v_star, Nx, Ny, h, k):
         ip1 = states.lij(ileft+1, j, Nx)
         operator.append(row, row, 1)
         operator.append(row, ip1, -1)
-        # b[row] = (-h/k)*u_star[ileft, j]  # TODO add gradient terms
         b[row] = 0.0  # TODO add gradient terms
 
     # Set useless ghost points to zero
     operator.append(0, 0, 1.0)  # bottom left
     operator.append(Nx-1, Nx-1, 1.0)  # bottom right
-    operator.append(n-Nx-1, n-Nx-1, 1.0)  # top left
+    operator.append(n-Nx, n-Nx, 1.0)  # top left
     operator.append(n-1, n-1, 1.0)  # top right
 
     return operator, b

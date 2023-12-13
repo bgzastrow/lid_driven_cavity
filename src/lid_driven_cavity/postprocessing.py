@@ -72,77 +72,49 @@ def plot_convergence(hs, errors, reference_rates, offset=1.0):
         )
     ax.legend().set_visible(False)
     ax.set_xlabel("1/h")
-    ax.set_ylabel("absolute error")
+    ax.set_ylabel("relative frobenius error")
     plt.show()
 
 
-# def plot_streamlines(u, v, phi):
-#     N = phi.get_matrix().shape[0] - 2
-#     # u grid
-#     Ny, Nx = u.get_matrix().shape
-#     xu = np.linspace(0.0, 1.0, Nx)
-#     yu = np.linspace(0.0, 1.0, Ny)
-#     Xu, Yu = np.meshgrid(xu, yu)
-
-#     # v grid
-#     Ny, Nx = v.get_matrix().shape
-#     xv = np.linspace(0.0, 1.0, Nx)
-#     yv = np.linspace(0.0, 1.0, Ny)
-#     Xv, Yv = np.meshgrid(xv, yv)
-
-#     # Phi grid
-#     Nx, Ny = phi.get_matrix().shape
-#     xphi = np.linspace(0.0, 1.0, Nx)
-#     yphi = np.linspace(0.0, 1.0, Ny)
-#     Xphi, Yphi = np.meshgrid(xphi, yphi)
-
-#     # Target (plotting) grid
-#     x = np.linspace(0.0, 1.0, N)
-#     y = np.linspace(0.0, 1.0, N)
-#     XN, YN = np.meshgrid(x, y)
-
-#     # Interpolation
-#     phiN = sp.interpolate.griddata((Xphi.flatten(), Yphi.flatten()), phi.vector, (XN, YN))
-#     vN = sp.interpolate.griddata((Xv.flatten(), Yv.flatten()), v.vector, (XN, YN))
-#     uN = sp.interpolate.griddata((Xu.flatten(), Yu.flatten()), u.vector, (XN, YN))
-
-#     # Plotting
-#     fig, ax = plt.subplots()
-#     # plt.contourf(XN, YN, phiN, np.arange(-0.003, 0.003, 0.0005))
-#     plt.contourf(XN, YN, phiN)
-#     plt.colorbar()
-#     # plt.quiver(XN, YN, uN, vN, color='black', scale=0.005)
-#     plt.quiver(XN, YN, uN, vN, color='black')
-#     # plt.streamplot(XN, YN, uN, vN, color='black')
-#     plt.show()
-
-
 def plot_streamlines(u, v, phi):
-    u = u.get_matrix()
-    v = v.get_matrix()
-    phi_matrix = phi.get_matrix()
+    N = phi.get_matrix().shape[0] - 2
+    # u grid
+    Ny, Nx = u.get_matrix().shape
+    xu = np.linspace(0.0, 1.0, Nx)
+    yu = np.linspace(0.0, 1.0, Ny)
+    Xu, Yu = np.meshgrid(xu, yu)
+
+    # v grid
+    Ny, Nx = v.get_matrix().shape
+    xv = np.linspace(0.0, 1.0, Nx)
+    yv = np.linspace(0.0, 1.0, Ny)
+    Xv, Yv = np.meshgrid(xv, yv)
+
+    # Phi grid
+    Nx, Ny = phi.get_matrix().shape
+    xphi = np.linspace(0.0, 1.0, Nx)
+    yphi = np.linspace(0.0, 1.0, Ny)
+    Xphi, Yphi = np.meshgrid(xphi, yphi)
+
+    # Target (plotting) grid
+    h = 1/N
+    x = np.linspace(1/N, 1.0-1/N, N)
+    y = np.linspace(1/N, 1.0-1/N, N)
+    # x = np.linspace(0.0, 1.0, N)
+    # y = np.linspace(0.0, 1.0, N)
+    XN, YN = np.meshgrid(x, y)
 
     # Interpolation
-    u_cc = (u[:, :-1] + u[:, 1:]) / 2.0
-    v_cc = (v[:-1, :] + v[1:, :]) / 2.0
-
-    phi_interior = phi_matrix[1:-1, 1:-1]
-    u_interior = u_cc[1:-1, :]
-    v_interior = v_cc[:, 1:-1]
-
-    # Spatial grid
-    Nx, Ny = phi_matrix.shape
-    h = 1 / Nx
-    x = np.linspace(h/2, 1.0-h/2, Nx-2)
-    y = np.linspace(h/2, 1.0-h/2, Ny-2)
-    X, Y = np.meshgrid(x, y)
+    phiN = sp.interpolate.griddata((Xphi.flatten(), Yphi.flatten()), phi.vector, (XN, YN))
+    vN = sp.interpolate.griddata((Xv.flatten(), Yv.flatten()), v.vector, (XN, YN))
+    uN = sp.interpolate.griddata((Xu.flatten(), Yu.flatten()), u.vector, (XN, YN))
 
     # Plotting
     fig, ax = plt.subplots()
     # plt.contourf(XN, YN, phiN, np.arange(-0.003, 0.003, 0.0005))
-    plt.contourf(X, Y, phi_interior)
+    plt.contourf(XN, YN, phiN)
     plt.colorbar()
-    # plt.quiver(X, Y, u, v, color='black', scale=0.005)
-    plt.quiver(X, Y, u_interior, v_interior, color='black')
-    # plt.streamplot(XN, YN, uN, vN, color='black')
+    # plt.quiver(XN, YN, uN, vN, color='black', scale=0.005)
+    # plt.quiver(XN, YN, uN, vN, color='black')
+    plt.streamplot(XN, YN, uN, vN, color='black')
     plt.show()
