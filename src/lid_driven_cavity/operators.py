@@ -240,7 +240,7 @@ def assemble_laplacian_operator_u(b, Nx, Ny, h):
     # top and bottom surfaces
     jtop = Ny-1
     jbottom = 0
-    for i in range(1, Nx-1):
+    for i in range(0, Nx):
 
         # top surface (y=1)
         row = states.lij(i, jtop, Nx)  # this is the row
@@ -314,7 +314,7 @@ def assemble_laplacian_operator_v(b, Nx, Ny, h):
     # top and bottom surfaces
     jtop = Ny-1
     jbottom = 0
-    for i in range(1, Nx-1):
+    for i in range(0, Nx):
 
         # top surface (y=1)
         row = states.lij(i, jtop, Nx)  # this is the row
